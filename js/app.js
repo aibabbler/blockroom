@@ -651,7 +651,7 @@ function renderDirect() {
   const m = settings.model, isCustom = !MODELS.some(x => x[0] === m && x[0] !== "custom");
   const plan = S.plan;
   $("#tab-direct").innerHTML = `
-    ${health && (!health.hasKey || !health.hasPasscode) ? `<div class="setup"><b>One-time setup in Vercel.</b> In your Blockroom project, open Settings, Environment Variables and add ${!health.hasKey ? "<code>OPENROUTER_API_KEY</code> (your OpenRouter key)" : ""}${!health.hasKey && !health.hasPasscode ? " and " : ""}${!health.hasPasscode ? "<code>BLOCKROOM_PASSCODE</code> (any phrase you choose)" : ""}, then redeploy.</div>` : ""}
+    ${health && !health.hasKey ? `<div class="setup"><b>One more step in Vercel.</b> In your Blockroom project, open Settings, Environment Variables, add <code>OPENROUTER_API_KEY</code> with your OpenRouter key, then redeploy.</div>` : ""}
     ${health === false ? `<div class="setup">The AI route is not reachable from here. Open Blockroom from its Vercel address to use Direct.</div>` : ""}
     <label class="field"><span>Describe the scene you want</span><textarea class="in brief" id="dBrief" placeholder="Who is in it, where it happens, what they do, the mood, and how the camera should feel.">${esc(lsGet("br2.brief") || "")}</textarea></label>
     <div class="chips">${EXAMPLES.map((x, i) => `<button data-ex="${i}">${esc(x.split(":")[0])}</button>`).join("")}</div>
@@ -664,10 +664,7 @@ function renderDirect() {
       <h3>Change it</h3>
       <textarea class="in" id="dAdjust" rows="3" placeholder="e.g. Make it golden hour, add a dog that follows her, end on a close-up."></textarea>
       <div class="btns"><button class="btn" id="dAdjustGo" ${aiBusy ? "disabled" : ""}>Apply change</button></div>
-      <p class="note">Changes rebuild the AI-made parts of the scene. Blocks you added yourself stay.</p>` : ""}
-    <h3>Passcode</h3>
-    <div class="search"><input class="in" id="dPass" type="password" value="${esc(settings.passcode)}" placeholder="Your BLOCKROOM_PASSCODE" autocomplete="off"><button class="btn" id="dPassSave">Save</button></div>
-    <p class="note">Kept only in this browser. It stops anyone else spending your OpenRouter credits.</p>`;
+      <p class="note">Changes rebuild the AI-made parts of the scene. Blocks you added yourself stay.</p>` : ""}`;
 }
 const tabDirect = $("#tab-direct");
 tabDirect.addEventListener("click", e => {
@@ -676,7 +673,6 @@ tabDirect.addEventListener("click", e => {
   if (t.id === "dGo") runDirector(false);
   if (t.id === "dAdjustGo") runDirector(true);
   if (t.id === "dStop" && aiAbort) aiAbort.abort();
-  if (t.id === "dPassSave") { settings.passcode = $("#dPass").value.trim(); saveSettings(); toast("Passcode saved in this browser."); }
 });
 tabDirect.addEventListener("input", e => { if (e.target.id === "dBrief") lsSet("br2.brief", e.target.value); });
 tabDirect.addEventListener("change", e => {
@@ -692,7 +688,6 @@ async function runDirector(adjust) {
   const instruction = adjust ? ($("#dAdjust") || {}).value?.trim() : "";
   if (!adjust && brief.length < 8) { dStatus("Describe the scene first.", "err"); return; }
   if (adjust && !instruction) { dStatus("Say what to change.", "err"); return; }
-  if (!settings.passcode) { dStatus("Enter your passcode below first.", "err"); return; }
   const model = settings.model || MODELS[0][0];
   const duration = clamp(+($("#dDur") || {}).value || S.duration, 3, 60), aspect = ($("#dAsp") || {}).value || S.aspect;
   const messages = BR.buildMessages({ brief, duration, aspect, takes: settings.takes, prevPlan: adjust ? S.plan : null, instruction });
@@ -701,9 +696,10 @@ async function runDirector(adjust) {
   const t0 = performance.now(); const tick = setInterval(() => dStatus(`${adjust ? "Changing" : "Directing"} with ${model}… ${Math.round((performance.now() - t0) / 1000)}s`), 500);
   try {
     const timeout = setTimeout(() => aiAbort.abort(), 295000);
-    const res = await fetch("api/direct", { method: "POST", headers: { "content-type": "application/json", "x-passcode": settings.passcode }, body: JSON.stringify({ model, messages, schema: BR.planSchema() }), signal: aiAbort.signal });
+    const res = await fetch("api/direct", { method: "POST", headers: { "content-type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ model, messages, schema: BR.planSchema() }), signal: aiAbort.signal });
     clearTimeout(timeout);
     let data; try { data = await res.json(); } catch (e) { throw new Error(`The AI route answered with HTTP ${res.status}.`); }
+    if (res.status === 401) { setTimeout(() => location.reload(), 1800); throw new Error(data.error || "Locked."); }
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     const plan = BR.parsePlan(data.content);
     pushUndo();
@@ -1192,6 +1188,7 @@ function renderSceneList() {
 }
 $("#bScenes").onclick = () => { $("#scenesModal").hidden = false; renderSceneList(); };
 $("#bCloseScenes").onclick = () => { $("#scenesModal").hidden = true; };
+$("#bLock").onclick = () => { saveLocal(); location.href = "api/lock"; };
 $("#scenesModal").addEventListener("click", e => {
   if (e.target.id === "scenesModal") { $("#scenesModal").hidden = true; return; }
   const o = e.target.closest("[data-open]"), d = e.target.closest("[data-del]");

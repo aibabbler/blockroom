@@ -4,4 +4,4 @@ AI previs and blocking app. Describe a scene, an OpenRouter model plans the set,
 
 Vercel environment variables:
 - `OPENROUTER_API_KEY` your OpenRouter key
-- `BLOCKROOM_PASSCODE` any phrase; enter the same phrase in the Direct tab
+- `BLOCKROOM_PASSCODE` your access code for the private landing page (changing it signs every device out)

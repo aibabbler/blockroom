@@ -1,5 +1,7 @@
 // Blockroom AI director route: forwards a scene-planning request to OpenRouter.
 // Needs two environment variables in Vercel: OPENROUTER_API_KEY and BLOCKROOM_PASSCODE.
+// The code gate (middleware.js) already blocks visitors without the code; this route checks again.
+import { isAuthed } from "../lib/auth.js";
 export const config = { maxDuration: 300 };
 
 const OPENROUTER = "https://openrouter.ai/api/v1/chat/completions";
@@ -14,7 +16,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST." });
   if (!key) return res.status(500).json({ error: "OPENROUTER_API_KEY is not set in Vercel." });
   if (!pass) return res.status(500).json({ error: "BLOCKROOM_PASSCODE is not set in Vercel." });
-  if ((req.headers["x-passcode"] || "") !== pass) return res.status(401).json({ error: "Wrong passcode. Check it in the Direct tab." });
+  if (!isAuthed(req.headers.cookie)) return res.status(401).json({ error: "Locked. Reload Blockroom and enter your code." });
 
   let body = req.body;
   if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = null; } }
