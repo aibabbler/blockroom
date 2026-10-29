@@ -1,0 +1,6 @@
+{
+  "name": "blockroom",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" }
+}

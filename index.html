@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Blockroom</title>
+<meta name="theme-color" content="#f2ede2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Kode+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">Block<i>room</i></div>
+    <div class="scene-name" id="sceneName">Scene</div>
+    <span class="status" id="status">Not saved</span>
+    <button class="btn icon" id="bUndo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+    <button class="btn icon" id="bRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+    <button class="btn" id="bScenes">Scenes</button>
+  </header>
+
+  <div id="vp">
+    <div class="loading" id="loading">LOADING 3D…</div>
+    <div class="ov tl">
+      <div class="seg" id="viewSeg" role="group" aria-label="View">
+        <button data-view="free" class="on">Free</button>
+        <button data-view="top">Top</button>
+        <button data-view="shot">Shot</button>
+      </div>
+    </div>
+    <div class="ov tr">
+      <div class="seg" id="toolSeg" role="group" aria-label="Tool">
+        <button data-tool="move" class="on" title="Move (W)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg><span>Move</span></button>
+        <button data-tool="rotate" title="Turn (E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></svg><span>Turn</span></button>
+        <button data-tool="scale" title="Size (R)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="10" width="10" height="10" rx="1"/><path d="M14 4h6v6M20 4l-8 8"/></svg><span>Size</span></button>
+        <button data-tool="walk" title="Walk: drag on the floor (G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="13" cy="4" r="2"/><path d="m9 21 2-6 3 3v3M7 11l3-3 4 1 3 3M11 15l1-6"/></svg><span>Walk</span></button>
+      </div>
+    </div>
+    <div class="recbadge" id="recBadge" hidden>REC</div>
+    <div id="frame" hidden><div class="thirds" id="thirds"></div><div class="ftag" id="ftag"></div></div>
+    <div class="ov bl"><div class="hint" id="hint"></div></div>
+  </div>
+
+  <div id="tl">
+    <div class="tl-row">
+      <button class="btn icon" id="bStart" title="Back to start" aria-label="Back to start"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="btn icon primary" id="bPlay" title="Play (Space)" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg></button>
+      <button class="btn rec" id="bRec" title="Record the selected block's movement"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg><span>Rec</span></button>
+      <div class="tc" id="tc">00.00 <small>/ 10.00</small></div>
+      <div class="spacer"></div>
+      <button class="btn icon" id="bPrevK" title="Previous key" aria-label="Previous key"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6 9 12l6 6z"/></svg></button>
+      <button class="btn" id="bKey" title="Key the selected block here (K)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 9 9-9 9-9-9z"/></svg><span>Key</span></button>
+      <button class="btn icon" id="bNextK" title="Next key" aria-label="Next key"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m9 6 6 6-6 6z"/></svg></button>
+      <button class="btn icon" id="bDelK" title="Delete key at playhead" aria-label="Delete key"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m12 3 9 9-9 9-9-9z"/><path d="M8 8l8 8"/></svg></button>
+    </div>
+    <div class="scrub"><div id="ticks"></div><div id="cutTicks"></div><input type="range" id="scrub" min="0" max="10" step="0.01" value="0" aria-label="Playhead"></div>
+    <div class="ruler" id="ruler"></div>
+  </div>
+
+  <aside id="panel">
+    <div class="tabs" role="tablist">
+      <button data-tab="direct" class="on">Direct</button>
+      <button data-tab="add">Add</button>
+      <button data-tab="blocks">Blocks</button>
+      <button data-tab="edit">Edit</button>
+      <button data-tab="shot">Shot</button>
+      <button data-tab="export">Export</button>
+    </div>
+    <div class="tabbody" id="tab-direct"></div>
+    <div class="tabbody" id="tab-add" hidden></div>
+    <div class="tabbody" id="tab-blocks" hidden></div>
+    <div class="tabbody" id="tab-edit" hidden></div>
+    <div class="tabbody" id="tab-shot" hidden></div>
+    <div class="tabbody" id="tab-export" hidden></div>
+  </aside>
+</div>
+
+<div class="scrim" id="scenesModal" hidden>
+  <div class="sheet" role="dialog" aria-label="Scenes">
+    <header style="display:flex;align-items:center;gap:8px"><h2>Scenes</h2><button class="btn" id="bCloseScenes">Close</button></header>
+    <div class="body">
+      <div class="btns"><button class="btn primary" id="bNewScene">New empty scene</button><button class="btn" id="bNewExample">New from example</button><button class="btn" id="bDupScene">Duplicate this one</button></div>
+      <p class="note">Scenes are saved in this browser. Use Export, Save scene .json to move one to another device.</p>
+      <div id="sceneList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="busy" id="busy" hidden>
+  <div class="box"><h4 id="busyTitle">Rendering</h4><div class="note" style="color:#bfb6a3" id="busyNote">Playing the shot through the camera in real time.</div><div class="bar"><i id="busyBar"></i></div><button class="btn" id="bCancelRender" style="background:#2a261e;color:#f3ead7;border-color:rgba(255,255,255,.15)">Cancel</button></div>
+</div>
+<div id="toast" hidden></div>
+<input type="file" id="fileImg" accept="image/*" hidden>
+<input type="file" id="fileJson" accept=".json,application/json" hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/TransformControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/geometries/RoundedBoxGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/utils/BufferGeometryUtils.js"></script>
+<script src="js/catalog.js"></script>
+<script src="js/director.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
